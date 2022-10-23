@@ -27,10 +27,14 @@ class FileManagerServiceTest {
     }
 
     @Test
-    void testCopyFiles() {
+    void deleteFiles() {
     }
 
     @Test
-    void deleteFiles() {
+    void findPattern() {
+    }
+
+    @Test
+    void findPatternAsync() {
     }
 }
