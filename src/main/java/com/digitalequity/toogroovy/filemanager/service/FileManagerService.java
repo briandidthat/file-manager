@@ -45,6 +45,19 @@ public class FileManagerService {
         });
     }
 
+    @Async
+    public CompletableFuture<List<Integer>> findPattern(String fileName, String pattern) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<Integer> lineNumbers = null;
+            try {
+                lineNumbers = IOUtils.find(new File(fileName), pattern);
+            } catch (IOException e) {
+                logger.error("Error: {}", e.getMessage());
+            }
+            return lineNumbers;
+        });
+    }
+
     /**
      * Will copy files asynchronously. Uses LinkedHashSets for the input filenames since we would
      * like to preserve the ordering of elements as they were inserted
@@ -89,6 +102,12 @@ public class FileManagerService {
         return results;
     }
 
+    /**
+     *
+     * @param files
+     * @return
+     * @throws Exception
+     */
     public Map<String, List<Boolean>> copyFiles(Map<String, Set<String>> files) throws Exception {
         final List<CompletableFuture<Boolean>> tasks = new ArrayList<>();
         final Map<String, List<CompletableFuture<Boolean>>> completableFutures = new HashMap<>();
@@ -157,4 +176,41 @@ public class FileManagerService {
 
         return results;
     }
+
+    /**
+     * Will search through the provided files asynchronously for the provided pattern
+     * @param fileNames Set of filenames to search through
+     * @param pattern Pattern to look for in provided files
+     * @return Map containing the filenames and list of line numbers in file it appeared in
+     */
+    public Map<String, List<Integer>> findPatterns(Set<String> fileNames, String pattern) {
+        final Map<String, List<Integer>> results = new HashMap<>();
+        final Map<String, CompletableFuture<List<Integer>>> completableFutures = new HashMap<>();
+        final List<CompletableFuture<List<Integer>>> tasks = new ArrayList<>();
+
+        final Instant start = Instant.now();
+        fileNames.forEach((fileName) -> {
+            CompletableFuture<List<Integer>> task = findPattern(fileName, pattern);
+            completableFutures.put(fileName, task);
+            tasks.add(task);
+        });
+
+        CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
+        final Instant end = Instant.now();
+        logger.info("Completed async file deletion in {}ms", end.minusMillis(start.toEpochMilli()).toEpochMilli());
+
+        fileNames.forEach((fileName) -> {
+            CompletableFuture<List<Integer>> future = completableFutures.get(fileName);
+            List<Integer> responses = null;
+            try {
+                responses = future.get();
+            } catch (Exception e) {
+                logger.info("Error: {}", e.getMessage());
+            }
+            results.put(fileName, responses);
+        });
+
+        return results;
+    }
+
 }
