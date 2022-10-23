@@ -59,53 +59,9 @@ public class FileManagerService {
     }
 
     /**
-     * Will copy files asynchronously. Uses LinkedHashSets for the input filenames since we would
-     * like to preserve the ordering of elements as they were inserted
-     *
-     * @param originals LinkedHashSet of filenames containing the filenames of the original files
-     * @param copies    LinkedHashSet of filenames containing the filenames of target copy files
-     * @return List of boolean values representing whether the file was copied or not
-     * @throws Exception InputMisMatchException if the input sets are not of same length
-     */
-    public List<Boolean> copyFiles(LinkedHashSet<String> originals, LinkedHashSet<String> copies) throws Exception {
-        if (originals.size() != copies.size()) throw new InputMismatchException("array length must match");
-
-        final List<Boolean> results;
-        final List<CompletableFuture<Boolean>> tasks = new ArrayList<>();
-
-        final Instant start = Instant.now();
-        final Iterator<String> originalItr = originals.iterator();
-        final Iterator<String> copyItr = copies.iterator();
-
-        while (originalItr.hasNext() && copyItr.hasNext()) {
-            String src = originalItr.next();
-            String dest = copyItr.next();
-
-            CompletableFuture<Boolean> future = copyFile(src, dest);
-            tasks.add(future);
-        }
-
-        CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
-        final Instant end = Instant.now();
-        logger.info("Completed async file copying in {}ms", end.minusMillis(start.toEpochMilli()).toEpochMilli());
-
-        results = tasks.stream().map(k -> {
-            boolean result = false;
-            try {
-                result = k.get();
-            } catch (Exception e) {
-                logger.error("Error: {}", e.getMessage());
-            }
-            return result;
-        }).collect(Collectors.toList());
-
-        return results;
-    }
-
-    /**
-     *
-     * @param files
-     * @return
+     * Will copy the contents of a file to the given target files
+     * @param files Map containing the filename as key, and the target filenames as value
+     * @return Map containing the filename as key, and the list containing status of copy as value
      * @throws Exception
      */
     public Map<String, List<Boolean>> copyFiles(Map<String, Set<String>> files) throws Exception {
@@ -183,7 +139,7 @@ public class FileManagerService {
      * @param pattern Pattern to look for in provided files
      * @return Map containing the filenames and list of line numbers in file it appeared in
      */
-    public Map<String, List<Integer>> findPatterns(Set<String> fileNames, String pattern) {
+    public Map<String, List<Integer>> findPattern(Set<String> fileNames, String pattern) {
         final Map<String, List<Integer>> results = new HashMap<>();
         final Map<String, CompletableFuture<List<Integer>>> completableFutures = new HashMap<>();
         final List<CompletableFuture<List<Integer>>> tasks = new ArrayList<>();
