@@ -13,9 +13,12 @@ public class IOUtils {
     private IOUtils() {
     }
 
-    public static boolean deleteFile(String fileName) throws Exception {
-        File file = new File(fileName);
-        return file.delete();
+    public static boolean deleteFile(String fileName) throws SecurityException {
+        boolean deleted = new File(fileName).delete();
+        if (deleted) {
+            logger.info("Successfully deleted {}.", fileName);
+        }
+        return deleted;
     }
 
     public static void copyContents(InputStream src, OutputStream dest) throws IOException {
@@ -25,7 +28,7 @@ public class IOUtils {
         }
     }
 
-    public static void copyFile(File src, File dest) throws IOException {
+    public static boolean copyFile(File src, File dest) throws IOException {
         logger.info("Copying files from {} to {}", src.getName(), dest.getName());
         FileInputStream input = new FileInputStream(src);
         FileOutputStream output = new FileOutputStream(dest);
@@ -35,6 +38,7 @@ public class IOUtils {
         input.close();
         output.close();
         logger.info("Successfully copied contents from {} to {}", src.getName(), dest.getName());
+        return true;
     }
 
     public static List<Integer> find(File file, String pattern) {
