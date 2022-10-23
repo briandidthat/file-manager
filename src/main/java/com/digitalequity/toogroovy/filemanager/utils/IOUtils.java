@@ -29,9 +29,9 @@ public class IOUtils {
     }
 
     public static boolean copyFile(File src, File dest) throws IOException {
-        logger.info("Copying files from {} to {}", src.getName(), dest.getName());
-        FileInputStream input = new FileInputStream(src);
-        FileOutputStream output = new FileOutputStream(dest);
+        logger.info("Copying contents from {} to {}", src.getName(), dest.getName());
+        final FileInputStream input = new FileInputStream(src);
+        final FileOutputStream output = new FileOutputStream(dest);
         // copy using utility method
         copyContents(input, output);
 
@@ -41,25 +41,19 @@ public class IOUtils {
         return true;
     }
 
-    public static List<Integer> find(File file, String pattern) {
-        List<Integer> lineNumbers = new ArrayList<>();
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            int lineNumber = 1;
-            String line;
-
-            // iterate through the lines of the file
-            while ((line = br.readLine()) != null) {
-                // add line number to lineNumbers if pattern is found
-                if (line.contains(pattern)) {
-                    lineNumbers.add(lineNumber);
-                }
-                // increment the line number to proceed to the next line
-                lineNumber++;
+    public static List<Integer> find(File file, String pattern) throws IOException {
+        final List<Integer> lineNumbers = new ArrayList<>();
+        final BufferedReader br = new BufferedReader(new FileReader(file));
+        int lineNumber = 1;
+        String line;
+        // iterate through the lines of the file
+        while ((line = br.readLine()) != null) {
+            // add line number to lineNumbers if pattern is found
+            if (line.contains(pattern)) {
+                lineNumbers.add(lineNumber);
             }
-        } catch (IOException e) {
-            logger.info("I/O Error occurred. Error: {}", e.getMessage());
-
+            // increment the line number to proceed to the next line
+            lineNumber++;
         }
         return lineNumbers;
     }
