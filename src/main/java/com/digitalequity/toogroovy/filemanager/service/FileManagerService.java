@@ -89,6 +89,47 @@ public class FileManagerService {
         return results;
     }
 
+    public Map<String, List<Boolean>> copyFiles(Map<String, Set<String>> files) throws Exception {
+        final List<CompletableFuture<Boolean>> tasks = new ArrayList<>();
+        final Map<String, List<CompletableFuture<Boolean>>> completableFutures = new HashMap<>();
+        final Map<String, List<Boolean>> results = new HashMap<>();
+
+        final Set<String> keys = files.keySet();
+        if (keys.size() == 0 || keys.size() > 20) throw new UnsupportedOperationException("Invalid input");
+
+        final Instant start = Instant.now();
+        keys.forEach((src) -> { // iterate through the source file array
+            Set<String> targets = files.get(src); // get list of targets for this file to be copied to
+            List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+            targets.forEach((target) -> { // iterate through the target file array for this source file
+                CompletableFuture<Boolean> future = copyFile(src, target);
+                tasks.add(future);
+                futures.add(future);
+            });
+            completableFutures.put(src, futures);
+        });
+        // wait for all completable futures to be done
+        CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
+        final Instant end = Instant.now();
+        logger.info("Completed async file copying in {}ms", end.minusMillis(start.toEpochMilli()).toEpochMilli());
+
+        completableFutures.keySet().forEach(key -> { // iterate through the source file array
+            List<CompletableFuture<Boolean>> futures = completableFutures.get(key);
+            List<Boolean> completed = futures.stream().map(k -> { // iterate through the completable
+                boolean result = false;
+                try {
+                    result = k.get();
+                } catch (Exception e) {
+                    logger.error("Error: {}", e.getMessage());
+                }
+                return result;
+            }).collect(Collectors.toList());
+            results.put(key, completed);
+        });
+
+        return results;
+    }
+
     /**
      * Will delete several files asynchronously if they exist and return a list of booleans
      * @param fileNames Set of filenames to be deleted
