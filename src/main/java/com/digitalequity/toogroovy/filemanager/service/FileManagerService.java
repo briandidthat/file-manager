@@ -3,6 +3,7 @@ package com.digitalequity.toogroovy.filemanager.service;
 import com.digitalequity.toogroovy.filemanager.utils.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -16,46 +17,54 @@ import java.util.stream.Collectors;
 @Service
 public class FileManagerService {
     private static final Logger logger = LoggerFactory.getLogger(FileManagerService.class);
+    @Value("${files.test}")
+    private String fileDirectory;
+
+    public Boolean copyFile(String src, String dest) {
+        boolean copied = false;
+        try {
+            copied = IOUtils.copyFile(new File(src), new File(dest));
+        } catch (IOException e) {
+            logger.error("Error: {}", e.getMessage());
+        }
+        return copied;
+    }
+
+    public Boolean deleteFile(String fileName) {
+        boolean deleted = false;
+        try {
+            deleted = IOUtils.deleteFile(fileName);
+        } catch (Exception e) {
+            logger.error("Error: {}", e.getMessage());
+        }
+        return deleted;
+    }
+
+    public List<Integer> findPattern(String fileName, String pattern) {
+        List<Integer> lineNumbers = null;
+        try {
+            lineNumbers = IOUtils.find(new File(fileName), pattern);
+        } catch (IOException e) {
+            logger.error("Error: {}", e.getMessage());
+        }
+        return lineNumbers;
+    }
 
     // ASYNC method definitions
 
     @Async
-    public CompletableFuture<Boolean> copyFile(String src, String dest) {
-        return CompletableFuture.supplyAsync(() -> {
-            boolean copied = false;
-            try {
-                copied = IOUtils.copyFile(new File(src), new File(dest));
-            } catch (IOException e) {
-                logger.error("Error: {}", e.getMessage());
-            }
-            return copied;
-        });
+    private CompletableFuture<Boolean> copyFileAsync(String src, String dest) {
+        return CompletableFuture.supplyAsync(() -> copyFile(src, dest));
     }
 
     @Async
-    public CompletableFuture<Boolean> deleteFile(String fileName) {
-        return CompletableFuture.supplyAsync(() -> {
-            boolean deleted = false;
-            try {
-                deleted = IOUtils.deleteFile(fileName);
-            } catch (Exception e) {
-                logger.error("Error: {}", e.getMessage());
-            }
-            return deleted;
-        });
+    private CompletableFuture<Boolean> deleteFileAsync(String fileName) {
+        return CompletableFuture.supplyAsync(() -> deleteFile(fileName));
     }
 
     @Async
-    public CompletableFuture<List<Integer>> findPattern(String fileName, String pattern) {
-        return CompletableFuture.supplyAsync(() -> {
-            List<Integer> lineNumbers = null;
-            try {
-                lineNumbers = IOUtils.find(new File(fileName), pattern);
-            } catch (IOException e) {
-                logger.error("Error: {}", e.getMessage());
-            }
-            return lineNumbers;
-        });
+    private CompletableFuture<List<Integer>> findPatternAsync(String fileName, String pattern) {
+        return CompletableFuture.supplyAsync(() -> findPattern(fileName, pattern));
     }
 
     /**
@@ -77,7 +86,7 @@ public class FileManagerService {
             Set<String> targets = files.get(src); // get list of targets for this file to be copied to
             List<CompletableFuture<Boolean>> futures = new ArrayList<>();
             targets.forEach((target) -> { // iterate through the target file array for this source file
-                CompletableFuture<Boolean> future = copyFile(src, target);
+                CompletableFuture<Boolean> future = copyFileAsync(src, target);
                 tasks.add(future);
                 futures.add(future);
             });
@@ -115,7 +124,7 @@ public class FileManagerService {
         final List<CompletableFuture<Boolean>> tasks;
 
         final Instant start = Instant.now();
-        tasks = fileNames.stream().map(this::deleteFile).collect(Collectors.toList());
+        tasks = fileNames.stream().map(this::deleteFileAsync).collect(Collectors.toList());
         CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
         final Instant end = Instant.now();
         logger.info("Completed async file deletion in {}ms", end.minusMillis(start.toEpochMilli()).toEpochMilli());
@@ -146,7 +155,7 @@ public class FileManagerService {
 
         final Instant start = Instant.now();
         fileNames.forEach((fileName) -> {
-            CompletableFuture<List<Integer>> task = findPattern(fileName, pattern);
+            CompletableFuture<List<Integer>> task = findPatternAsync(fileName, pattern);
             completableFutures.put(fileName, task);
             tasks.add(task);
         });

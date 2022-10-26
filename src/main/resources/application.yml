@@ -1,3 +1,7 @@
 spring:
   application:
     name: file-manager
+
+files:
+  basepath: files
+  test: files/test/
