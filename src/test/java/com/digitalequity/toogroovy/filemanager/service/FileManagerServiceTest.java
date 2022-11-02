@@ -1,5 +1,6 @@
 package com.digitalequity.toogroovy.filemanager.service;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,8 +37,13 @@ class FileManagerServiceTest {
         service.deleteFile(A_COPY);
     }
 
+    @AfterAll
+    void resetFileDirectory() {
+        service.deleteFiles(new HashSet<>(List.of(A_COPY, B_COPY, C_COPY, D_COPY)));
+    }
+
     @Test
-    void copyFiles() throws Exception {
+    void copyAndDeleteFiles() throws Exception {
         Map<String, Set<String>> tasks = new HashMap<>();
         tasks.put(A_FILE, new HashSet<>(List.of(A_COPY)));
         tasks.put(B_FILE, new HashSet<>(List.of(B_COPY)));
@@ -48,11 +54,16 @@ class FileManagerServiceTest {
         System.out.println(results.toString());
 
         results.values().forEach((list) -> list.forEach(Assertions::assertTrue));
-        service.deleteFiles(new HashSet<>(List.of(A_COPY, B_COPY, C_COPY, D_COPY)));
+        List<Boolean> deleted = service.deleteFiles(new HashSet<>(List.of(A_COPY, B_COPY, C_COPY, D_COPY)));
+
     }
 
     @Test
     void deleteFile() {
+        service.copyFile(A_FILE, A_COPY);
+        boolean deleted = service.deleteFile(A_COPY);
+
+        assertTrue(deleted);
     }
 
     @Test
