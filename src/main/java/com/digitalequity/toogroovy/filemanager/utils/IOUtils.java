@@ -21,7 +21,7 @@ public class IOUtils {
         return deleted;
     }
 
-    public static void copyContents(InputStream src, OutputStream dest) throws IOException {
+    private static void copyContents(InputStream src, OutputStream dest) throws IOException {
         int value;
         while ((value = src.read()) > 0) {
             dest.write((char) value);
